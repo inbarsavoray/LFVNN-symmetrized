@@ -46,7 +46,7 @@ to be able to run the code locally while editing it in place.
 
 To also be able to run on the cluster, the same command sould be also run there. The following command might be of use beforehand:
 
-> export PATH="$PATH:/srv01/agrp/<your-username>/.local/bin"
+> export PATH="$PATH:/srv01/agrp/\<your-username>/.local/bin"
 
 if pip is not already recognized.
 
