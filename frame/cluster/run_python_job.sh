@@ -7,11 +7,11 @@
 echo "Starting on `hostname`, `date`"
 echo "jobs id: ${PBS_JOBID}"
 
-# cd to the required directory
-cd $WORKDIR
+# NOTE: working directory is defaultly set to be the
+#       user's home directory at the cluster
 
-# run python script with arguments
-
+git pull
+pip install -r $REPO_RELPATH/requirements.txt
 python $SCRIPT_RELPATH $PYTHON_ARGS
 
 echo "Done, `date`"

@@ -20,7 +20,6 @@ class ClusterConfig(Config):
 
     # PERSONAL run parameters
     cluster__remote_repository_dir: PurePosixPath
-    cluster__working_dir: Path
 
     # qsub command parameters
     cluster__qsub_walltime: str  # in the form of "12:00:00"

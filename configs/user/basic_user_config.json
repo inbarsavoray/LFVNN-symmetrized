@@ -6,6 +6,5 @@
     "cluster__user": "",
     "cluster__password": "",
 
-    "cluster__remote_repository_dir": "",
-    "cluster__working_dir": ""
+    "cluster__remote_repository_dir": ""
 }

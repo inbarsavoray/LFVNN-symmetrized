@@ -34,6 +34,7 @@ def build_qsub_command(
         wait_job_ids: List[str],
         environment_variables: Optional[Dict[str, str]] = None,
         output_file: Optional[str] = None,
+        is_private_job_directory: bool = True,
     ) -> str:
     command = f"/opt/pbs/bin/qsub -l walltime={walltime},io={io}" \
         + (f",mem={mem}g" if mem is not None else "") \
@@ -50,6 +51,10 @@ def build_qsub_command(
 
     if output_file:
         command += f" -o {output_file}"
+        command += f" -W stage_out={output_file}"
+
+    if is_private_job_directory:
+        command += "-Wsandbox=PRIVATE"
         
     command += f" {submitted_command}"
     

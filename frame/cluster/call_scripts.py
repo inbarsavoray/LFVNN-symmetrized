@@ -12,7 +12,7 @@ RUN_PYTHON_JOB_SH_ABS_PATH = Path(__file__).parent.absolute() / "run_python_job.
 @retrieve_output_from_remote_file
 def run_remote_python(
         context: ExecutionContext,
-        python_script_relpath_from_workdir: PurePath,
+        python_script_relpath_from_root: PurePath,
         environment_variables: Dict[str, str] = {},
         script_arguments: List[str] = [],
         max_tries: int = 50,
@@ -26,8 +26,8 @@ def run_remote_python(
         output_filename = context.unique_descriptor + ".out"
         cluster_output_file = get_remote_equivalent_path(config.cluster__remote_repository_dir, RESULTS_DIR / output_filename)
 
-    environment_variables["WORKDIR"] = str(config.cluster__working_dir)
-    environment_variables["SCRIPT_RELPATH"] = str(python_script_relpath_from_workdir)
+    environment_variables["REPO_RELPATH"] = str(config.cluster__remote_repository_dir)
+    environment_variables["SCRIPT_RELPATH"] = str(python_script_relpath_from_root)
     environment_variables["PYTHON_ARGS"] = f"\'{' '.join(script_arguments)}\'"
 
     submit_cluster_job(
