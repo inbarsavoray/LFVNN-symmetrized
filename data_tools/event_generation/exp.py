@@ -27,12 +27,12 @@ def exp(
 
     # Signal
     if is_signal_gaussian:
-        signal = np.random.normal(loc=config.dataset__signal_location, scale=gaussian_signal_sigma, size=(number_of_signal_events,1))*np.exp(config.dataset__induced_shape_nuisance_value)
+        signal = np.random.normal(loc=config.dataset__signal_location, scale=gaussian_signal_sigma, size=(number_of_signal_events, config._dataset__number_of_dimensions))*np.exp(config.dataset__induced_shape_nuisance_value)
     else:
         def Sig_dist(x):
             dist = x**2*np.exp(-x)
             return dist/np.sum(dist)
-        signal = np.random.choice(np.linspace(0,100,100000),size=(number_of_signal_events,1),replace=True,p=Sig_dist(np.linspace(0,100,100000)))*np.exp(config.dataset__induced_shape_nuisance_value)
+        signal = np.random.choice(np.linspace(0,100,100000),size=(number_of_signal_events, config._dataset__number_of_dimensions),replace=True,p=Sig_dist(np.linspace(0,100,100000)))*np.exp(config.dataset__induced_shape_nuisance_value)
     
     events = np.concatenate((background, signal), axis=0)
     return DataSet(events)
