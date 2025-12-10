@@ -106,7 +106,8 @@ def qsub_a_script(
     
     # Add PBS dependency if specified (only run if predecessor succeeds)
     if depends_on_success_of_jobid:
-        qsub_command += f"-W depend=afterok:{depends_on_success_of_jobid} "
+        depend_type = "afterokarray" if "[]" in depends_on_success_of_jobid else "afterok"
+        qsub_command += f"-W depend={depend_type}:{depends_on_success_of_jobid} "
     
     # Add environment variables if specified
     if env_vars:
