@@ -19,6 +19,7 @@ from data_tools.detector.detector_config import DetectorConfig
 from frame.context.execution_context import ExecutionContext
 from frame.file_system.training_history import HistoryKeys
 from neural_networks.utils import ContextedModel, save_training_outcomes, get_model_logging_dir
+from train.checkpoints import find_latest_training_checkpoint, save_training_checkpoint
 from train.train_config import TrainConfig
 
 
@@ -291,6 +292,24 @@ class DifferentiatingModel(nn.Module, ContextedModel):
         weights_tensor = torch.tensor(weights, dtype=torch.float32, device=self._device)
         return data_tensor, mask_tensor, weights_tensor
 
+    def _load_training_checkpoint_if_requested(self, optimizer: optim.Optimizer) -> int:
+        checkpoint_result = find_latest_training_checkpoint(self._context, self._name)
+        if checkpoint_result is None:
+            if self._context.is_continue:
+                raise RuntimeError(f"No checkpoint found for continuation model {self._name}")
+            return 0
+
+        checkpoint_path, checkpoint = checkpoint_result
+        self.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        self._training_history = {
+            key: list(value)
+            for key, value in checkpoint.get("training_history", {}).items()
+        }
+        start_epoch = int(checkpoint.get("epoch", -1)) + 1
+        info(f"Loaded checkpoint for {self._name} from {checkpoint_path}; resuming at epoch {start_epoch}")
+        return start_epoch
+
     def _train_step(
         self,
         optimizer: Optional[optim.Optimizer],
@@ -323,14 +342,20 @@ class DifferentiatingModel(nn.Module, ContextedModel):
         self._initialize_tensorboard_writer()
         optimizer = self.configure_optimizers()
 
-        max_epochs = self._config.train__epochs
-        epoch_iterator = range(1 if optimizer is None else max_epochs)
+        start_epoch = self._load_training_checkpoint_if_requested(optimizer) if optimizer is not None else 0
+        end_epoch = start_epoch if optimizer is None else self._config.train__epochs
+        epoch_iterator = range(start_epoch, end_epoch)
+
+        if start_epoch >= max_epochs:
+            self._close_tensorboard_writer()
+            return self._training_history
+
         if self._config.train__enable_progress_bar:
             epoch_iterator = tqdm(epoch_iterator, desc=f"{self._name} training")
 
         # Training with binning context
         with self.binning_context(data.unified_data):
-            for _ in epoch_iterator:
+            for epoch in epoch_iterator:
                 epoch_last_predictions = self._train_step(
                     optimizer=optimizer,
                     data=data_tensor,
@@ -340,6 +365,16 @@ class DifferentiatingModel(nn.Module, ContextedModel):
                 self._training_history.setdefault(HistoryKeys.LOSS.value, []).append(
                     float(epoch_last_predictions.detach().cpu())
                 )
+
+                if epoch % self._config.train__number_of_epochs_for_checkpoint == 0 or epoch == end_epoch - 1:
+                    save_training_checkpoint(
+                        context=self._context,
+                        model_name=self._name,
+                        model=self,
+                        optimizer=optimizer,
+                        epoch=epoch,
+                        training_history=self._training_history,
+                    )
 
         self._close_tensorboard_writer()
 
